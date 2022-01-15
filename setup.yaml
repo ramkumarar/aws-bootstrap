@@ -1,5 +1,5 @@
 AWSTemplateFormatVersion: "2010-09-09"
-Description:
+Description: 'S3 bucket for code pipeline'
 Parameters:
   CodePipelineBucket:
     Type: String
@@ -17,4 +17,5 @@ Resources:
         RestrictPublicBuckets: true
       BucketEncryption:
         ServerSideEncryptionConfiguration:
-          - ServerSideEncryptionByDe
+            - ServerSideEncryptionByDefault:
+                 SSEAlgorithm: AES256
