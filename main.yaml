@@ -217,10 +217,7 @@ Resources:
       Protocol: HTTP
       VpcId: !Ref VPC
       HealthCheckEnabled: true
-      HealthCheckProtocol: HTTPS
-      Targets:
-        - Id: !Ref Instance
-        - Id: !Ref Instance2
+      HealthCheckProtocol: HTTP            
       Tags:
         - Key: Name
           Value: !Ref AWS::StackName                          
@@ -304,35 +301,7 @@ Resources:
               | jq -r ".Tags[0].Value"`
 
             # Signal to CloudFormation that the instance is ready
-            /opt/aws/bin/cfn-signal -e $? --stack ${AWS::StackName} --region ${AWS::Region} --resource ${!LOGICAL_ID}      
-  Instance:
-    Type: AWS::EC2::Instance
-    CreationPolicy:
-        ResourceSignal:
-          Timeout: PT15M
-          Count: 1    
-    Properties:
-        SubnetId: !Ref SubnetAZ1
-        LaunchTemplate:
-          LaunchTemplateId: !Ref InstanceLaunchTemplate
-          Version: !GetAtt InstanceLaunchTemplate.LatestVersionNumber
-        Tags:
-          - Key: Name
-            Value: !Ref AWS::StackName
-  Instance2:
-    Type: AWS::EC2::Instance
-    CreationPolicy:
-        ResourceSignal:
-          Timeout: PT15M
-          Count: 1    
-    Properties:
-        SubnetId: !Ref SubnetAZ2
-        LaunchTemplate:
-          LaunchTemplateId: !Ref InstanceLaunchTemplate
-          Version: !GetAtt InstanceLaunchTemplate.LatestVersionNumber
-        Tags:
-          - Key: Name
-            Value: !Ref AWS::StackName
+            /opt/aws/bin/cfn-signal -e $? --stack ${AWS::StackName} --region ${AWS::Region} --resource ${!LOGICAL_ID}        
   ScalingGroup:
     Type: AWS::AutoScaling::AutoScalingGroup
     UpdatePolicy:
@@ -353,8 +322,9 @@ Resources:
         - !Select [ 0, !GetAZs '' ]
         - !Select [ 1, !GetAZs '' ]
       MinSize: 2
-      MaxSize: 6
-      HealthCheckGracePeriod: 0
+      MaxSize: 4
+      DesiredCapacity: 2
+      HealthCheckGracePeriod: 300
       HealthCheckType: ELB
       LaunchTemplate:
         LaunchTemplateId: !Ref InstanceLaunchTemplate
@@ -376,18 +346,13 @@ Resources:
           PropagateAtLaunch: "true"                    
   StagingDeploymentGroup:
       Type: AWS::CodeDeploy::DeploymentGroup
-      DependsOn: Instance
       Properties:
         DeploymentGroupName: staging
         AutoScalingGroups:
           - !Ref ScalingGroup
         ApplicationName: !Ref DeploymentApplication
         DeploymentConfigName: CodeDeployDefault.AllAtOnce
-        ServiceRoleArn: !GetAtt DeploymentRole.Arn
-        Ec2TagFilters:
-          - Key: aws:cloudformation:stack-name
-            Type: KEY_AND_VALUE
-            Value: !Ref AWS::StackName
+        ServiceRoleArn: !GetAtt DeploymentRole.Arn        
   Pipeline:
     Type: AWS::CodePipeline::Pipeline
     Properties:
@@ -462,14 +427,4 @@ Outputs:
     Description: The DNS name for the LB
     Value: !Sub "http://${LoadBalancer.DNSName}:80"
     Export:
-      Name: LBEndpoint
-  InstanceEndpoint1:
-    Description: The DNS name for the created instance
-    Value: !Sub "http://${Instance.PublicDnsName}:8080"
-    Export:
-      Name: InstanceEndpoint1
-  InstanceEndpoint2:
-    Description: The DNS name for the created instance
-    Value: !Sub "http://${Instance2.PublicDnsName}:8080"
-    Export:
-      Name: InstanceEndpoint2   
+      Name: LBEndpoint  
