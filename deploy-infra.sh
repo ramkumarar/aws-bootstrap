@@ -17,8 +17,6 @@ CERT_DOMAIN=*.learncloud.ga
 
 CERT=`aws acm list-certificates --region $REGION --profile awsbootstrap --output text --query "CertificateSummaryList[?DomainName=='$CERT_DOMAIN'].CertificateArn | [0]"`
 
-echo $CERT
-
 # Deploys static resources
 aws cloudformation deploy --region $REGION --profile $CLI_PROFILE --stack-name $STACK_NAME-setup --template-file ./setup.yaml --capabilities CAPABILITY_NAMED_IAM --no-fail-on-empty-changeset --parameter-overrides  CodePipelineBucket=$CODEPIPELINE_BUCKET CloudFormationBucket=$CFN_BUCKET
 
@@ -33,8 +31,6 @@ PACKAGE_ERR="$(aws cloudformation package \
   --s3-bucket $CFN_BUCKET \
   --output-template-file ./cfn_output/main.yaml 2>&1 )" 
 
-
-#PACKAGE_ERR="$(aws cloudformation package --region $REGION --profile $CLI_PROFILE --template-file ./main.yaml --s3-bucket $CFN_BUCKET --output-template-file ./cfn_output/main.yaml 2>&1)"
 
 if ! [[ $PACKAGE_ERR =~ "Successfully packaged artifacts" ]]; then
 	echo "ERROR while running 'aws cloudformation package' command:"

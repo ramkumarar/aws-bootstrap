@@ -20,19 +20,11 @@ Resources:
     Properties:
       VpcId: !Ref VPC
       GroupDescription: !Sub 'Internal Security group for ${AWS::StackName}'
-      SecurityGroupIngress:
-        - IpProtocol: tcp
-          FromPort: 8080
-          ToPort: 8080
-          CidrIp: 0.0.0.0/0
+      SecurityGroupIngress:        
         - IpProtocol: tcp
           FromPort: 8443
           ToPort: 8443
-          CidrIp: 0.0.0.0/0  
-        - IpProtocol: tcp
-          FromPort: 80
-          ToPort: 80
-          CidrIp: 0.0.0.0/0  
+          CidrIp: 0.0.0.0/0          
         - IpProtocol: tcp
           FromPort: 443
           ToPort: 443
@@ -161,28 +153,7 @@ Resources:
         - !Ref SubnetAZ2
       Tags:
         - Key: Name
-          Value: !Ref AWS::StackName
-  LoadBalancerListener:
-     Type: AWS::ElasticLoadBalancingV2::Listener
-     Properties:
-        DefaultActions:
-          - Type: forward
-            TargetGroupArn: !Ref LoadBalancerTargetGroup
-        LoadBalancerArn: !Ref LoadBalancer
-        Port: 80
-        Protocol: HTTP      
-  LoadBalancerTargetGroup:
-    Type: AWS::ElasticLoadBalancingV2::TargetGroup
-    Properties:
-      TargetType: instance
-      Port: 8080
-      Protocol: HTTP
-      VpcId: !Ref VPC
-      HealthCheckEnabled: true
-      HealthCheckProtocol: HTTP            
-      Tags:
-        - Key: Name
-          Value: !Ref AWS::StackName     
+          Value: !Ref AWS::StackName   
   HTTPSLoadBalancerListener:
     Type: AWS::ElasticLoadBalancingV2::Listener
     Properties:
@@ -314,8 +285,7 @@ Resources:
       LaunchTemplate:
         LaunchTemplateId: !Ref InstanceLaunchTemplate
         Version: !GetAtt InstanceLaunchTemplate.LatestVersionNumber
-      TargetGroupARNs:
-        - !Ref LoadBalancerTargetGroup  
+      TargetGroupARNs:        
         - !Ref HTTPSLoadBalancerTargetGroup      
       MetricsCollection:
         -
@@ -339,10 +309,7 @@ Resources:
         AliasTarget:
           HostedZoneId: !GetAtt LoadBalancer.CanonicalHostedZoneID
           DNSName: !GetAtt LoadBalancer.DNSName         
-Outputs:
-  LBEndpoint:
-    Description: The DNS name for the LB
-    Value: !Sub "http://${DNS}"
+Outputs:  
   HTTPSEndpoint:
     Description: The DNS name for the stage
     Value: !Sub "https://${DNS}"  

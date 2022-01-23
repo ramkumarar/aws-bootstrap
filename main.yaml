@@ -190,22 +190,12 @@ Resources:
       Name: !Sub 'webhook-${AWS::StackName}'
       TargetPipelineVersion: !GetAtt Pipeline.Version
       RegisterWithThirdParty: true              
-Outputs:
-  StageLBEndpoint:
-    Description: The DNS name for the LB
-    Value: !GetAtt Staging.Outputs.LBEndpoint
-    Export:
-      Name: StageLBEndpoint  
+Outputs:  
   StagingHTTPSLBEndpoint: 
     Description: The DNS name for the staging HTTPS LB
     Value: !GetAtt Staging.Outputs.HTTPSEndpoint
     Export:
-      Name: StagingHTTPSLBEndpoint    
-  ProdLBEndpoint:
-    Description: The DNS name for the LB
-    Value: !GetAtt Prod.Outputs.LBEndpoint
-    Export:
-      Name: ProdLBEndpoint
+      Name: StagingHTTPSLBEndpoint      
   ProdHTTPSLBEndpoint: 
     Description: The DNS name for the prod HTTPS LB
     Value: !GetAtt Prod.Outputs.HTTPSEndpoint
