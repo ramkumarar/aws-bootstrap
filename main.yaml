@@ -25,6 +25,11 @@ Parameters:
     Type: String
     NoEcho: true
     Description: 'A GitHub personal access token with "repo" and "admin:repo_hook" permissions.'
+  Domain:
+    Type: String  
+  Certificate:
+    Type: String
+    Description: 'An existing ACM certificate ARN for your domain' 
 
 Resources:  
   Staging:
@@ -35,6 +40,9 @@ Resources:
       Parameters:
         EC2InstanceType: !Ref EC2InstanceType
         EC2AMI: !Ref EC2AMI
+        Domain: !Ref Domain
+        Certificate: !Ref Certificate
+        SubDomain: staging
   Prod:
     Type: AWS::CloudFormation::Stack
     DependsOn: Staging
@@ -43,7 +51,10 @@ Resources:
       TimeoutInMinutes: 30
       Parameters:
         EC2InstanceType: !Ref EC2InstanceType
-        EC2AMI: !Ref EC2AMI      
+        EC2AMI: !Ref EC2AMI  
+        Domain: !Ref Domain
+        Certificate: !Ref Certificate
+        SubDomain: prod    
 
   DeploymentRole:
     Type: "AWS::IAM::Role"
@@ -185,8 +196,18 @@ Outputs:
     Value: !GetAtt Staging.Outputs.LBEndpoint
     Export:
       Name: StageLBEndpoint  
+  StagingHTTPSLBEndpoint: 
+    Description: The DNS name for the staging HTTPS LB
+    Value: !GetAtt Staging.Outputs.HTTPSEndpoint
+    Export:
+      Name: StagingHTTPSLBEndpoint    
   ProdLBEndpoint:
     Description: The DNS name for the LB
     Value: !GetAtt Prod.Outputs.LBEndpoint
     Export:
-      Name: ProdLBEndpoint      
+      Name: ProdLBEndpoint
+  ProdHTTPSLBEndpoint: 
+    Description: The DNS name for the prod HTTPS LB
+    Value: !GetAtt Prod.Outputs.HTTPSEndpoint
+    Export:
+      Name: ProdHTTPSLBEndpoint          

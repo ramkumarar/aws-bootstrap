@@ -6,6 +6,13 @@ Parameters:
     Type: String    
   EC2AMI:
     Type: String    
+  Domain:
+    Type: String
+  SubDomain:
+    Type: String  
+  Certificate:
+    Type: String
+    Description: 'An existing ACM certificate ARN for subdomain.domain'  
 
 Resources:
   SecurityGroup:
@@ -19,9 +26,17 @@ Resources:
           ToPort: 8080
           CidrIp: 0.0.0.0/0
         - IpProtocol: tcp
+          FromPort: 8443
+          ToPort: 8443
+          CidrIp: 0.0.0.0/0  
+        - IpProtocol: tcp
           FromPort: 80
           ToPort: 80
           CidrIp: 0.0.0.0/0  
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          CidrIp: 0.0.0.0/0    
         - IpProtocol: tcp
           FromPort: 22
           ToPort: 22
@@ -155,7 +170,7 @@ Resources:
             TargetGroupArn: !Ref LoadBalancerTargetGroup
         LoadBalancerArn: !Ref LoadBalancer
         Port: 80
-        Protocol: HTTP    
+        Protocol: HTTP      
   LoadBalancerTargetGroup:
     Type: AWS::ElasticLoadBalancingV2::TargetGroup
     Properties:
@@ -167,7 +182,30 @@ Resources:
       HealthCheckProtocol: HTTP            
       Tags:
         - Key: Name
-          Value: !Ref AWS::StackName                          
+          Value: !Ref AWS::StackName     
+  HTTPSLoadBalancerListener:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      DefaultActions:
+        - Type: forward
+          TargetGroupArn: !Ref HTTPSLoadBalancerTargetGroup
+      LoadBalancerArn: !Ref LoadBalancer
+      Certificates:
+        - CertificateArn: !Ref Certificate
+      Port: 443
+      Protocol: HTTPS                             
+  HTTPSLoadBalancerTargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      TargetType: instance
+      Port: 8443
+      Protocol: HTTPS
+      VpcId: !Ref VPC
+      HealthCheckEnabled: true
+      HealthCheckProtocol: HTTPS
+      Tags:
+        - Key: Name
+          Value: !Ref AWS::StackName          
   InstanceLaunchTemplate:
     Type: AWS::EC2::LaunchTemplate
     Metadata:
@@ -277,7 +315,8 @@ Resources:
         LaunchTemplateId: !Ref InstanceLaunchTemplate
         Version: !GetAtt InstanceLaunchTemplate.LatestVersionNumber
       TargetGroupARNs:
-        - !Ref LoadBalancerTargetGroup
+        - !Ref LoadBalancerTargetGroup  
+        - !Ref HTTPSLoadBalancerTargetGroup      
       MetricsCollection:
         -
           Granularity: "1Minute"
@@ -290,11 +329,23 @@ Resources:
       Tags:
         - Key: Name
           Value: !Ref AWS::StackName
-          PropagateAtLaunch: "true"    
+          PropagateAtLaunch: "true"   
+  DNS:
+    Type: AWS::Route53::RecordSet
+    Properties:
+        HostedZoneName: !Sub '${Domain}.'
+        Name: !Sub '${SubDomain}.${Domain}.'
+        Type: A
+        AliasTarget:
+          HostedZoneId: !GetAtt LoadBalancer.CanonicalHostedZoneID
+          DNSName: !GetAtt LoadBalancer.DNSName         
 Outputs:
   LBEndpoint:
     Description: The DNS name for the LB
-    Value: !Sub "http://${LoadBalancer.DNSName}:80"  
+    Value: !Sub "http://${DNS}"
+  HTTPSEndpoint:
+    Description: The DNS name for the stage
+    Value: !Sub "https://${DNS}"  
   ScalingGroup:
     Description: The ScalingGroup for this stage
     Value: !Ref ScalingGroup      
